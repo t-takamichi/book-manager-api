@@ -46,7 +46,6 @@ describe('E2E negative /api/books using SQLite', () => {
   });
 
   test('cannot checkout an already loaned book', async () => {
-    // First checkout should succeed
     const first = await app.fetch(new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -54,7 +53,6 @@ describe('E2E negative /api/books using SQLite', () => {
     }));
     expect(first.status).toBe(200);
 
-    // Second checkout attempt should fail with 422 and domain message
     const second = await app.fetch(new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,10 +66,8 @@ describe('E2E negative /api/books using SQLite', () => {
   });
 
   test('invalid staffId returns 422', async () => {
-    // Create a fresh book so it's not already loaned
     const newResult = await seedFactory.createBookWithAuthor(prisma, { title: '無効staffId用の本' });
 
-    // Attempt checkout with a non-existent staffId against the fresh book
     const res = await app.fetch(new Request(`http://localhost/api/books/${newResult.book.id}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

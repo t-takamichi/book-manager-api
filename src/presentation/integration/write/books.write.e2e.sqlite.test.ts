@@ -51,7 +51,6 @@ describe('E2E write /api/books using SQLite', () => {
     expect(checkoutBody.currentLoan).toBeDefined();
     expect(checkoutBody.currentLoan.borrower).toBe('E2E 利用者');
 
-    // verify GET /api/books/:id returns same
     const getReq = new Request(`http://localhost/api/books/${seededBookId}`);
     const getRes = await app.fetch(getReq);
     expect(getRes.status).toBe(200);
@@ -71,7 +70,6 @@ describe('E2E write /api/books using SQLite', () => {
     expect(returnBody.available).toBe(true);
     expect(returnBody.currentLoan).toBeFalsy();
 
-    // verify GET /api/books/:id returns available true
     const getReq2 = new Request(`http://localhost/api/books/${seededBookId}`);
     const getRes2 = await app.fetch(getReq2);
     expect(getRes2.status).toBe(200);

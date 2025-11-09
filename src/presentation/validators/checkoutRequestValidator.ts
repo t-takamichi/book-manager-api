@@ -9,10 +9,7 @@ export type CheckoutOptions = {
   dueAt?: string;
 };
 
-/**
- * Build and validate a checkout options DTO from raw request body.
- * Throws DomainValidationError for client-side validation problems (mapped to 422).
- */
+
 export function buildCheckoutOptionsFromBody(bookId: string, raw: any): CheckoutOptions {
   const body = raw || {};
 

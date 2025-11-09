@@ -20,7 +20,6 @@ describe('E2E read /api/books using SQLite', () => {
     app = new Hono();
     app.route('/', createRoutes(service));
 
-    // seed one book with active loan
     const { book } = await seedFactory.createBookWithAuthor(prisma, { title: 'TypeScript入門' });
     const borrower = await seedFactory.createBorrower(prisma, 'テスト利用者', 'test@example.com');
     const staff = await seedFactory.createStaff(prisma, '受付太郎');
