@@ -85,9 +85,8 @@
 
 ---
 
-## テーブル間の関係（わかりやすい説明）
+## テーブル間の関係
 
-このセクションでは各テーブルがどのように連携しているかを簡潔に示します。
 
 - books 1 --- * book_authors * --- 1 authors
   - 説明: 1つの書籍（`books`）は複数の著者（`authors`）を持てます。中間テーブル `book_authors` が多対多の関係を表現します。
@@ -106,33 +105,3 @@
 - borrowers.id (1) ← loans.borrower_id (多)
 - staff.id (1) ← loans.staff_id (多・NULL 可)
 
-この図（文章版）は ER 図の簡易版です。必要なら Mermaid での可視化（README への埋め込み）も作成できます。
-
-## シードデータ（マイグレーションで挿入されるもの）
-
-- authors
-  - `山田太郎`
-  - `鈴木花子`
-
-- books
-  - `external_id='1'`, `title='TypeScript入門'`, `isbn='978-4-xxxx-xxxx-1'`, `published='2025-01-01'`, `description='TypeScriptの基礎から応用まで学べる入門書'`
-  - `external_id='2'`, `title='Honoで作るWebアプリケーション'`, `isbn='978-4-xxxx-xxxx-2'`, `published='2025-02-15'`, `description='Honoを使ったモダンなWebアプリケーション開発の解説'`
-
-- book_authors
-  - `external_id='1'` の書籍と `山田太郎` をリンク
-  - `external_id='2'` の書籍と `鈴木花子` をリンク
-
-シードは `INSERT ... ON DUPLICATE KEY UPDATE` を使っており、複数回実行しても冪等になるようになっています。
-
----
-
-## 注意事項・推奨
-
-- 文字セット: マイグレーションでテーブルを `utf8mb4`（`utf8mb4_unicode_ci`）で作成しているため、日本語や絵文字の文字化けを防げます。
-- 既に文字化けしたデータが存在する場合は、開発環境であればデータベースを再作成する（`docker compose down -v && docker compose up --build`）のが最も簡単です。運用中に対応する場合は `ALTER TABLE ... CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` などで変換しますが、慎重な検証が必要です。
-- Prisma 側のマッピング: Prisma スキーマでは `externalId` → `external_id` のように `@map` を使ってフィールド名をデータベースのスネークケースに合わせています。多対多は明示的な `BookAuthor` 中間モデルを用いて `book_authors` テーブルにマッピングしています。
-
----
-
-## 参照元
-このドキュメントはリポジトリ内の `prisma/migrations/0001_init/migration.sql` から生成しました。
