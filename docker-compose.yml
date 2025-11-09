@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      # Use environment variables for credentials. Provide defaults for local/dev convenience.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-app_db}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppass}
+    # DB schema is now managed by Prisma migrations. No init.sql mount.
+    volumes:
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3306:3306"
+
+  app:
+    build: .
+    env_file:
+      - .env
+    restart: unless-stopped
+    environment:
+      USE_PRISMA: 'true'
+      # Application reads DB connection from DATABASE_URL (recommended) or individual vars below.
+      # You can set these in a .env file at the repo root (example provided below).
+      DATABASE_URL: ${DATABASE_URL}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-app}
+      DB_PASS: ${DB_PASS:-apppass}
+      DB_NAME: ${DB_NAME:-app_db}
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount host .env into the container so tools like Prisma (which read a .env file)
+      # see the same values as docker-compose environment substitution. Read-only mount.
+      - ./.env:/usr/src/app/.env:ro
+    depends_on:
+      - db

@@ -1,0 +1,31 @@
+{
+  "name": "book-manager-api",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/main.js",
+    "prisma:generate": "prisma generate",
+    "test:sqlite:prepare": "DATABASE_URL=\"file:./dev-test.db\" npx prisma db push --schema=prisma/schema.sqlite.prisma && npx prisma generate --schema=prisma/schema.sqlite.prisma",
+    "test:sqlite": "DATABASE_URL=\"file:./dev-test.db\" npx jest --runInBand --verbose"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@prisma/client": "6.19.0",
+    "hono": "^4.10.4",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.11.17",
+    "babel-jest": "^30.2.0",
+    "prisma": "6.19.0",
+    "ts-jest": "^29.4.5",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.3",
+    "tsc-alias": "^1.8.0"
+  }
+}

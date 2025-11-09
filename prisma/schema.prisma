@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id    Int     @id @default(autoincrement())
+  name  String
+  bookAuthors BookAuthor[]
+  @@map("authors")
+}
+
+model Book {
+  id          Int      @id @default(autoincrement())
+  externalId  String?  @map("external_id")
+  title       String
+  isbn        String?
+  published   DateTime?
+  description String?
+  bookAuthors BookAuthor[]
+  loans       Loan[]
+  @@map("books")
+}
+
+model Borrower {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String?
+  loans Loan[]
+  @@map("borrowers")
+}
+
+model Staff {
+  id   Int    @id @default(autoincrement())
+  name String
+  role String?
+  loans Loan[]
+  @@map("staff")
+}
+
+model Loan {
+  id         Int       @id @default(autoincrement())
+  book       Book      @relation(fields: [bookId], references: [id])
+  bookId     Int       @map("book_id")
+  borrower   Borrower  @relation(fields: [borrowerId], references: [id])
+  borrowerId Int       @map("borrower_id")
+  staff      Staff?    @relation(fields: [staffId], references: [id])
+  staffId    Int?      @map("staff_id")
+  loanedAt   DateTime  @default(now()) @map("loaned_at")
+  dueAt      DateTime? @map("due_at")
+  returnedAt DateTime? @map("returned_at")
+  status     LoanStatus @default(loaned)
+  @@map("loans")
+}
+
+enum LoanStatus {
+  loaned
+  returned
+  overdue
+}
+
+// Explicit join table for many-to-many between Book and Author
+model BookAuthor {
+  book   Book   @relation(fields: [bookId], references: [id])
+  bookId Int    @map("book_id")
+  author Author @relation(fields: [authorId], references: [id])
+  authorId Int  @map("author_id")
+
+  @@id([bookId, authorId])
+  @@map("book_authors")
+}
