@@ -7,14 +7,12 @@ import { BookRepositoryPrismaImpl } from '@web/infrastructure/repository/BookRep
 const app = new Hono()
 
 async function boot() {
-  // If USE_PRISMA environment variable is set to 'true', try to use Prisma implementation.
   const usePrisma = process.env.USE_PRISMA === 'true';
 
 
   let bookRepository = new BookRepositoryPrismaImpl();
   const bookService = new BookService(bookRepository);
 
-  // Register routes
   app.route('/', createRoutes(bookService));
 
   serve({
