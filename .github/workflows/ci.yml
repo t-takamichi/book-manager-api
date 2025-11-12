@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test-mysql:
+  test:
     runs-on: ubuntu-latest
     services:
       mysql:
