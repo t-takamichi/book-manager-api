@@ -11,19 +11,15 @@
 - 各 API の概要
 Web 書籍管理 API
 
-以下はローカル開発と Docker ベース実行のための簡潔な手引きです。README の 2/3 パスで「前提条件」「.env.example への言及」「curl の成功/エラー例」を追加しました。
-
 ## 前提条件 (推奨)
 - Node.js 18.x 以降（LTS）
 - npm 8.x 以降
 - Docker Engine / Docker Compose (Compose V2 推奨)
 
-軽量に試すだけであればローカルの SQLite（E2E テスト）で動作確認できます。本番相当の動作確認は Docker Compose 上の MySQL コンテナで行ってください。
-
 ## プロジェクト概要
 - 言語/ランタイム: TypeScript (ESM), Node.js
 - ORM: Prisma (MySQL 本番 / SQLite をテストで利用)
-- HTTP フレームワーク: Hono
+- フレームワーク: Hono
 - テスト: Jest（ユニット + SQLite を使った E2E）
 
 ## プロジェクト構成 (主要ファイル/ディレクトリ)
