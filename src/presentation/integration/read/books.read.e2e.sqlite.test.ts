@@ -10,6 +10,7 @@ process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev-test.db';
 describe('E2E read /api/books using SQLite', () => {
   let app: any;
   let prisma: PrismaClient;
+  let createdBookId: number;
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -20,7 +21,8 @@ describe('E2E read /api/books using SQLite', () => {
     app = new Hono();
     app.route('/', createRoutes(service));
 
-    const { book } = await seedFactory.createBookWithAuthor(prisma, { title: 'TypeScript入門' });
+  const { book } = await seedFactory.createBookWithAuthor(prisma, { title: 'TypeScript入門' });
+  createdBookId = book.id;
     const borrower = await seedFactory.createBorrower(prisma, 'テスト利用者', 'test@example.com');
     const staff = await seedFactory.createStaff(prisma, '受付太郎');
     await prisma.loan.create({
@@ -51,7 +53,7 @@ describe('E2E read /api/books using SQLite', () => {
   });
 
   test('GET /api/books/:id returns book with currentLoan', async () => {
-    const req = new Request('http://localhost/api/books/1');
+  const req = new Request(`http://localhost/api/books/${createdBookId}`);
     const res = await app.fetch(req);
     expect(res.status).toBe(200);
     const body = await res.json();
