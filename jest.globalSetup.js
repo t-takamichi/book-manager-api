@@ -63,4 +63,4 @@ module.exports = async () => {
   } catch (e) {
     console.warn('jest.globalSetup: failed to truncate MySQL tables', e.message || e);
   }
-t };
+};
