@@ -155,7 +155,6 @@ curl -sS -X POST http://localhost:3000/api/books/1/return | jq
 MySQL（Docker Compose 内）:
 ```env
 DATABASE_URL="mysql://app:verysecret@db:3306/app_db"
-SHADOW_DATABASE_URL="mysql://migrate:shadowpass@db:3306/shadow_db"
 ```
 SQLite（テスト用）:
 ```env
