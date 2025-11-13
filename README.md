@@ -74,9 +74,22 @@ npm run start
 注: ローカル起動では MySQL の用意（ローカル DB または別コンテナ）が必要です。開発の簡便さと一貫性のため、Docker Compose を第一選択にしてください。
 
 ## 各 API の概要
-- GET /api/books?q=<query>
-  - 検索ワードで書籍を検索します。
-  - レスポンス: 書籍一覧（JSON）
+- GET /api/books
+  - 検索および一覧取得のエンドポイントです。クエリパラメータで挙動を変えられます。
+  - クエリパラメータ:
+    - `q` (optional): 検索ワード（タイトル／著者名／ISBN 等）。未指定なら全件一覧になります。
+    - `page` (optional): ページ番号（1-based）。指定するとページネーションでのレスポンスになります。
+    - `per_page` (optional): 1ページあたりの件数（デフォルト 15、最大 100）。
+  - レスポンス: ページネーション形式のオブジェクトを返します。
+    - 返却形式（常に page/perPage を含む paginated object）:
+      ```json
+      {
+        "items": [ /* Book[] */ ],
+        "total": 123,
+        "page": 1,
+        "perPage": 15
+      }
+      ```
 
 - GET /api/books/:id
   - 指定 ID の書籍を取得します。

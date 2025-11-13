@@ -7,7 +7,7 @@ import seedFactory from '../helpers/seedFactory';
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev-test.db';
 
-describe('E2E negative /api/books using SQLite', () => {
+describe('E2E negative /api/books', () => {
   let app: any;
   let prisma: PrismaClient;
   let seededBookId: number | string;

@@ -7,7 +7,7 @@ import seedFactory from '../helpers/seedFactory';
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev-test.db';
 
-describe('E2E read /api/books using SQLite', () => {
+describe('E2E read /api/books', () => {
   let app: any;
   let prisma: PrismaClient;
   let createdBookId: number;
@@ -47,9 +47,13 @@ describe('E2E read /api/books using SQLite', () => {
     const res = await app.fetch(req);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBeGreaterThan(0);
-    expect(body[0].title).toBe('TypeScript入門');
+    expect(body).toHaveProperty('items');
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items.length).toBeGreaterThan(0);
+    expect(body.items[0].title).toBe('TypeScript入門');
+    expect(body).toHaveProperty('total');
+    expect(body).toHaveProperty('page');
+    expect(body).toHaveProperty('perPage');
   });
 
   test('GET /api/books/:id returns book with currentLoan', async () => {

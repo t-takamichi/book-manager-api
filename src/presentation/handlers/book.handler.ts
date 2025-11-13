@@ -9,14 +9,42 @@ import { buildCheckoutOptionsFromBody } from '@web/presentation/validators/check
 export const searchBooks = (bookService: IBookService) => async (c: Context) => {
   try {
     const query = c.req.query('q');
-    logger.info(`Search query received: ${query}`);
 
-    BookQueryValidator.validateQuery(query);
+    // pagination params for search
+    const pageParam = c.req.query('page');
+    const perPageParam = c.req.query('per_page') || c.req.query('perPage');
 
-    const searchResults = await bookService.searchBooks(query);
-    logger.info(`Search results found: ${searchResults.length} items`);
+    const page = pageParam ? Number(pageParam) : 1;
+    const perPage = perPageParam ? Number(perPageParam) : 15;
 
-    return c.json(searchResults);
+    logger.info(`Search request received: q=${query} page=${page} perPage=${perPage}`);
+
+    // Always return paginated object (items, total, page, perPage)
+    const result = await bookService.listBooks(query, page, perPage);
+
+    logger.info(`Search results found: ${result.items.length} items (total=${result.total})`);
+
+    return c.json(result);
+  } catch (error) {
+    const { statusCode, body } = ErrorResponseHandler.generate(error);
+
+    return c.json(body, statusCode);
+  }
+};
+
+export const listBooks = (bookService: IBookService) => async (c: Context) => {
+  try {
+    const pageParam = c.req.query('page');
+    const perPageParam = c.req.query('per_page') || c.req.query('perPage');
+
+    const page = pageParam ? Number(pageParam) : 1;
+    const perPage = perPageParam ? Number(perPageParam) : 15;
+
+    logger.info(`List books request received: page=${page} perPage=${perPage}`);
+
+    const result = await bookService.listAllBooks(page, perPage);
+
+    return c.json(result);
   } catch (error) {
     const { statusCode, body } = ErrorResponseHandler.generate(error);
 

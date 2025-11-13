@@ -74,6 +74,58 @@ export class BookRepositoryPrismaImpl implements BookRepository {
     return rows.map(mapPrismaBookToDomain);
   }
 
+  async findPaginated(page: number, perPage: number): Promise<{ items: Book[]; total: number }> {
+    const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
+    const safePage = page && page > 0 ? page : 1;
+
+    const skip = (safePage - 1) * safePerPage;
+
+    // total count
+    const total = await this.prisma.book.count();
+
+    // fetch page
+    const rows: BookRow[] = await this.prisma.book.findMany({
+      include: BOOK_INCLUDES,
+      skip,
+      take: safePerPage,
+    });
+
+    const items = rows.map(mapPrismaBookToDomain);
+
+    return { items, total };
+  }
+
+  async findByQueryPaginated(query: string | undefined, page: number, perPage: number): Promise<{ items: Book[]; total: number }> {
+    const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
+    const safePage = page && page > 0 ? page : 1;
+
+    const skip = (safePage - 1) * safePerPage;
+
+    const where = query && query.trim() !== ''
+      ? {
+          OR: [
+            { title: { contains: query } },
+            { isbn: { contains: query } },
+            { description: { contains: query } },
+            { bookAuthors: { some: { author: { name: { contains: query } } } } },
+          ],
+        }
+      : undefined;
+
+    const total = await this.prisma.book.count({ where });
+
+    const rows: BookRow[] = await this.prisma.book.findMany({
+      where,
+      include: BOOK_INCLUDES,
+      skip,
+      take: safePerPage,
+    });
+
+    const items = rows.map(mapPrismaBookToDomain);
+
+    return { items, total };
+  }
+
   async findByQuery(query?: string): Promise<Book[]> {
     if (!query) return this.findAll();
 
