@@ -5,7 +5,6 @@ import type { IBookService } from '@web/domain/service/BookService';
 import { BookQueryValidator } from '@web/presentation/validators/bookQueryValidator';
 import { buildCheckoutOptionsFromBody } from '@web/presentation/validators/checkoutRequestValidator';
 
-
 export const searchBooks = (bookService: IBookService) => async (c: Context) => {
   try {
     const query = c.req.query('q');

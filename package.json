@@ -6,8 +6,13 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "DATABASE_URL=\"${DATABASE_URL_WRITE:-$DATABASE_URL}\" npx prisma migrate deploy",
     "test:sqlite:prepare": "DATABASE_URL=\"file:./dev-test.db\" npx prisma db push --schema=prisma/schema.sqlite.prisma && npx prisma generate --schema=prisma/schema.sqlite.prisma",
-    "test:e2e": "DATABASE_URL=\"file:./dev-test.db\" npx jest --runInBand --verbose"
+    "test:e2e": "DATABASE_URL=\"file:./dev-test.db\" npx jest --runInBand --verbose",
+    "test:unit": "DATABASE_URL=\"file:./dev-test.db\" npx jest --runInBand --verbose src/infrastructure/db/client-issuer.test.ts",
+    "lint": "eslint \"src/**/*.{ts,js}\" --ext .ts --max-warnings 0",
+    "lint:fix": "eslint \"src/**/*.{ts,js}\" --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\""
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
@@ -19,13 +24,24 @@
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
+    "jest": "^30.2.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.17",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
     "babel-jest": "^30.2.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
     "prisma": "6.19.0",
     "ts-jest": "^29.4.5",
+    "tsc-alias": "^1.8.0",
     "tsx": "^4.7.1",
-    "typescript": "^5.8.3",
-    "tsc-alias": "^1.8.0"
+    "typescript": "^5.8.3"
+  },
+  "eslintConfig": {
+    "root": true
   }
 }

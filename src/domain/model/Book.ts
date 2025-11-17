@@ -18,7 +18,7 @@ export class Book {
     // available: true if no active loan
     public available: boolean = true,
     // current active loan info when available === false
-    public currentLoan?: LoanInfo
+    public currentLoan?: LoanInfo,
   ) {}
 
   getSummary(): string {

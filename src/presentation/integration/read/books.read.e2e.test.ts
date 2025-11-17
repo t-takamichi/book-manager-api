@@ -15,14 +15,15 @@ describe('E2E read /api/books', () => {
   beforeAll(async () => {
     prisma = new PrismaClient();
     await prisma.$connect();
-
-    const repo = new BookRepositoryPrismaImpl();
+    const issuerModule = await import('@web/infrastructure/db/client-issuer');
+    const issuer = new issuerModule.ClientIssuer(prisma, prisma);
+    const repo = new BookRepositoryPrismaImpl(issuer);
     const service = new BookService(repo);
     app = new Hono();
     app.route('/', createRoutes(service));
 
-  const { book } = await seedFactory.createBookWithAuthor(prisma, { title: 'TypeScript入門' });
-  createdBookId = book.id;
+    const { book } = await seedFactory.createBookWithAuthor(prisma, { title: 'TypeScript入門' });
+    createdBookId = book.id;
     const borrower = await seedFactory.createBorrower(prisma, 'テスト利用者', 'test@example.com');
     const staff = await seedFactory.createStaff(prisma, '受付太郎');
     await prisma.loan.create({
@@ -57,7 +58,7 @@ describe('E2E read /api/books', () => {
   });
 
   test('GET /api/books/:id returns book with currentLoan', async () => {
-  const req = new Request(`http://localhost/api/books/${createdBookId}`);
+    const req = new Request(`http://localhost/api/books/${createdBookId}`);
     const res = await app.fetch(req);
     expect(res.status).toBe(200);
     const body = await res.json();

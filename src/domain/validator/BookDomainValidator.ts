@@ -11,7 +11,9 @@ export class BookDomainValidator {
 
     const trimmed = query.trim();
     if (trimmed.length > 0 && trimmed.length < 3) {
-      throw new DomainValidationError('Query parameter must be at least 3 characters for business reasons.');
+      throw new DomainValidationError(
+        'Query parameter must be at least 3 characters for business reasons.',
+      );
     }
 
     // 例: 禁止語チェック

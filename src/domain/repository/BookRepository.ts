@@ -1,4 +1,5 @@
 import { Book } from '@web/domain/model/Book';
+import type { DatabaseClient } from '@web/infrastructure/db/client-issuer';
 
 export interface BookRepository {
   findAll(): Promise<Book[]>;
@@ -14,7 +15,11 @@ export interface BookRepository {
    * Find paginated results for a query search.
    * Should apply the same filters as findByQuery but return only the requested page and the total count.
    */
-  findByQueryPaginated(query: string | undefined, page: number, perPage: number): Promise<{ items: Book[]; total: number }>;
+  findByQueryPaginated(
+    query: string | undefined,
+    page: number,
+    perPage: number,
+  ): Promise<{ items: Book[]; total: number }>;
 
   findById(id: string): Promise<Book | null>;
 
@@ -25,7 +30,7 @@ export interface BookRepository {
     borrowerEmail?: string;
     staffId?: number;
     dueAt?: string;
-  }): Promise<void>;
+  }): Promise<Book>;
 
-  returnBookByBookId(bookId: string): Promise<void>;
+  returnBookByBookId(bookId: string): Promise<Book>;
 }

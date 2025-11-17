@@ -1,5 +1,10 @@
 import { Hono } from 'hono';
-import { searchBooks, getBookById, checkoutBook, returnBook } from '@web/presentation/handlers/book.handler';
+import {
+  searchBooks,
+  getBookById,
+  checkoutBook,
+  returnBook,
+} from '@web/presentation/handlers/book.handler';
 import type { IBookService } from '@web/domain/service/BookService';
 
 export const createRoutes = (bookService: IBookService) => {

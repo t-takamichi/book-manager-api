@@ -22,7 +22,11 @@ export async function createStaff(prisma: PrismaClient, name = '受付太郎', r
   return prisma.staff.create({ data: { name, role } });
 }
 
-export async function createBorrower(prisma: PrismaClient, name = '利用者', email = 'test@example.com') {
+export async function createBorrower(
+  prisma: PrismaClient,
+  name = '利用者',
+  email = 'test@example.com',
+) {
   return prisma.borrower.create({ data: { name, email } });
 }
 

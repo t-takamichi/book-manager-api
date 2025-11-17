@@ -10,9 +10,16 @@ export interface IBookService {
   /**
    * Search books with pagination. If query is undefined or empty string, behaves like listAllBooks.
    */
-  listBooks(query: string | undefined, page?: number, perPage?: number): Promise<{ items: Book[]; total: number; page: number; perPage: number }>;
+  listBooks(
+    query: string | undefined,
+    page?: number,
+    perPage?: number,
+  ): Promise<{ items: Book[]; total: number; page: number; perPage: number }>;
   // listAllBooks returns paginated listing of all books (no search filter)
-  listAllBooks(page?: number, perPage?: number): Promise<{ items: Book[]; total: number; page: number; perPage: number }>;
+  listAllBooks(
+    page?: number,
+    perPage?: number,
+  ): Promise<{ items: Book[]; total: number; page: number; perPage: number }>;
   getBookById(id: string): Promise<Book>;
   checkoutBook(options: {
     bookId: string;
@@ -44,8 +51,14 @@ export class BookService implements IBookService {
     return results;
   }
 
-  async listBooks(query: string | undefined, page: number = 1, perPage: number = 15): Promise<{ items: Book[]; total: number; page: number; perPage: number }> {
-    logger.info(`Executing BookService.listBooks with query: ${query} page=${page} perPage=${perPage}`);
+  async listBooks(
+    query: string | undefined,
+    page: number = 1,
+    perPage: number = 15,
+  ): Promise<{ items: Book[]; total: number; page: number; perPage: number }> {
+    logger.info(
+      `Executing BookService.listBooks with query: ${query} page=${page} perPage=${perPage}`,
+    );
 
     // apply domain validation rules (e.g. minimum length) when query present
     if (query && query.trim() !== '') {
@@ -55,7 +68,11 @@ export class BookService implements IBookService {
     const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
     const safePage = page && page > 0 ? page : 1;
 
-    const { items, total } = await this.bookRepository.findByQueryPaginated(query, safePage, safePerPage);
+    const { items, total } = await this.bookRepository.findByQueryPaginated(
+      query,
+      safePage,
+      safePerPage,
+    );
 
     return { items, total, page: safePage, perPage: safePerPage };
   }
@@ -87,26 +104,21 @@ export class BookService implements IBookService {
 
     CheckoutValidator.validate(options);
 
-    const book = await this.bookRepository.findById(options.bookId);
-    if (!book) throw new NotFoundError(`Book with id ${options.bookId} not found.`);
-
-    await this.bookRepository.createLoanForBook(options);
-
-    return (await this.bookRepository.findById(options.bookId)) as Book;
+    const created = await this.bookRepository.createLoanForBook(options);
+    return created;
   }
 
   async returnBook(bookId: string): Promise<Book> {
     logger.info(`Executing BookService.returnBook for bookId: ${bookId}`);
 
-    const book = await this.bookRepository.findById(bookId);
-    if (!book) throw new NotFoundError(`Book with id ${bookId} not found.`);
-
-    await this.bookRepository.returnBookByBookId(bookId);
-
-    return (await this.bookRepository.findById(bookId)) as Book;
+    const updated = await this.bookRepository.returnBookByBookId(bookId);
+    return updated;
   }
 
-  async listAllBooks(page: number = 1, perPage: number = 15): Promise<{ items: Book[]; total: number; page: number; perPage: number }> {
+  async listAllBooks(
+    page: number = 1,
+    perPage: number = 15,
+  ): Promise<{ items: Book[]; total: number; page: number; perPage: number }> {
     logger.info(`Executing BookService.listAllBooks page=${page} perPage=${perPage}`);
 
     const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;

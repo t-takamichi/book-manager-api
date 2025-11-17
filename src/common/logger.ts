@@ -6,11 +6,9 @@ const logger = createLogger({
     format.timestamp(),
     format.printf(({ timestamp, level, message }) => {
       return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    })
+    }),
   ),
-  transports: [
-    new transports.Console()
-  ]
+  transports: [new transports.Console()],
 });
 
 export default logger;

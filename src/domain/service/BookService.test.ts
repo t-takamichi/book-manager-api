@@ -7,9 +7,11 @@ describe('BookService', () => {
     const svc = new BookService(repo);
 
     // searchBooks is now async and validates before calling repository
-    return expect(svc.searchBooks('ab')).rejects.toThrow(/at least 3 characters/).then(() => {
-      expect(repo.findByQuery).not.toHaveBeenCalled();
-    });
+    return expect(svc.searchBooks('ab'))
+      .rejects.toThrow(/at least 3 characters/)
+      .then(() => {
+        expect(repo.findByQuery).not.toHaveBeenCalled();
+      });
   });
 
   test('returns results when repository has matches', () => {
@@ -27,8 +29,10 @@ describe('BookService', () => {
     const repo: any = { findByQuery: jest.fn().mockResolvedValue([]) };
     const svc = new BookService(repo);
 
-    return expect(svc.searchBooks('unknown query')).rejects.toThrow(NotFoundError).then(() => {
-      expect(repo.findByQuery).toHaveBeenCalledWith('unknown query');
-    });
+    return expect(svc.searchBooks('unknown query'))
+      .rejects.toThrow(NotFoundError)
+      .then(() => {
+        expect(repo.findByQuery).toHaveBeenCalledWith('unknown query');
+      });
   });
 });

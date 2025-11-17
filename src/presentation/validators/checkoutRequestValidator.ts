@@ -9,16 +9,13 @@ export type CheckoutOptions = {
   dueAt?: string;
 };
 
-
 export function buildCheckoutOptionsFromBody(bookId: string, raw: any): CheckoutOptions {
   const body = raw || {};
 
-  const borrowerId = body.borrowerId !== undefined && body.borrowerId !== null
-    ? Number(body.borrowerId)
-    : undefined;
-  const staffId = body.staffId !== undefined && body.staffId !== null
-    ? Number(body.staffId)
-    : undefined;
+  const borrowerId =
+    body.borrowerId !== undefined && body.borrowerId !== null ? Number(body.borrowerId) : undefined;
+  const staffId =
+    body.staffId !== undefined && body.staffId !== null ? Number(body.staffId) : undefined;
 
   const borrowerName = body.borrowerName ? String(body.borrowerName) : undefined;
   const borrowerEmail = body.borrowerEmail ? String(body.borrowerEmail) : undefined;

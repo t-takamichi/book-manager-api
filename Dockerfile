@@ -12,6 +12,7 @@ RUN npm run build || true
 RUN npx tsc-alias --project tsconfig.json --resolve-full-paths --resolve-full-extension .js || true
 
 RUN npx prisma generate || true
+RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib/apt/lists/* || true
 
 RUN chmod +x ./docker/entrypoint.sh || true
 

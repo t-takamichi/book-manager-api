@@ -54,12 +54,32 @@ jobs:
             sleep 2
           done
 
-      - name: Prepare MySQL schema and generate Prisma client
-        run: |
-          npx prisma db push --schema=prisma/schema.prisma
-          npx prisma generate --schema=prisma/schema.prisma
 
-      - name: Run tests (Jest)
-        run: npx jest --runInBand --verbose
-        env:
-          CI: true
+      # Unit tests are executed inside the containerized environment below to
+      # ensure the same runtime and DB are used for E2E and integration tests.
+      - name: Build and run containerized E2E (Docker Compose)
+        run: |
+          # Build images
+          docker compose build --no-cache --pull
+
+          # Start services
+          docker compose up -d
+
+          # Wait for db-primary to be ready
+          echo "Waiting for db-primary to accept connections..."
+          for i in {1..60}; do
+            docker compose exec -T db-primary mysqladmin ping -h 127.0.0.1 -P 3306 -u app -pverysecret >/dev/null 2>&1 && { echo "db ready"; break; }
+            echo -n "."
+            sleep 2
+          done
+
+          # Run migrations, generate client and tests inside app
+          docker compose exec -T app sh -c '
+            DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma migrate deploy --schema=prisma/schema.prisma && 
+              DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma generate --schema=prisma/schema.prisma && 
+              CI=true NODE_ENV=test DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx jest --runInBand --verbose
+          '
+
+      - name: Teardown containerized services
+        if: always()
+        run: docker compose down -v

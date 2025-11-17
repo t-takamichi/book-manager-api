@@ -15,7 +15,9 @@ describe('E2E pagination /api/books', () => {
     prisma = new PrismaClient();
     await prisma.$connect();
 
-    const repo = new BookRepositoryPrismaImpl();
+    const issuerModule = await import('@web/infrastructure/db/client-issuer');
+    const issuer = new issuerModule.ClientIssuer(prisma, prisma);
+    const repo = new BookRepositoryPrismaImpl(issuer);
     const service = new BookService(repo);
     app = new Hono();
     app.route('/', createRoutes(service));
@@ -30,7 +32,9 @@ describe('E2E pagination /api/books', () => {
     // create 7 books with a special keyword for filtered pagination
     const createFiltered: Promise<any>[] = [];
     for (let i = 1; i <= 7; i++) {
-      createFiltered.push(seedFactory.createBookWithAuthor(prisma, { title: `SpecialFilter ${i}` }));
+      createFiltered.push(
+        seedFactory.createBookWithAuthor(prisma, { title: `SpecialFilter ${i}` }),
+      );
     }
     await Promise.all(createFiltered);
   });

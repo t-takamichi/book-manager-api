@@ -71,6 +71,49 @@ npm run prisma:generate
 npm run start
 ```
 
+### Docker Compose で E2E テストを実行する
+
+このリポジトリには Jest を使った E2E テスト群が含まれています。Docker Compose 上で MySQL を立ち上げ、同じネットワーク内の `app` コンテナからマイグレーション適用・クライアント生成・テスト実行を行うのが確実です。
+
+手順（推奨、コンテナ内で実行）:
+
+1. Compose を起動（バックグラウンド）
+
+```bash
+docker compose up -d
+```
+
+2. 環境変数（`.env`）で DB ユーザ/パスが設定されていることを確認します。
+  - デフォルトは `MYSQL_USER=app` / `MYSQL_PASSWORD=apppass` ですが、コンテナ起動時に別の値が適用されることがあります。`docker compose logs db-primary` で確認できます。
+
+3. `app` コンテナ内でマイグレーション適用・Prisma クライアント生成・テスト実行を実行します。
+  - 例（MySQL のユーザ/パスが `app:verysecret` の場合、サービス名は `db-primary`）:
+
+```bash
+docker compose exec app sh -c '
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma migrate deploy --schema=prisma/schema.prisma && \
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma generate --schema=prisma/schema.prisma && \
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx jest --runInBand --verbose'
+```
+
+ポイント:
+- 上のコマンドはコンテナ内部から `db-primary` のホスト名で MySQL にアクセスするため、ホストのポートマッピングに依存しません。
+- `npx` コマンドがインタラクティブにパッケージをインストールする場合があります。CI では事前に devDependencies をインストールするか、`npx --yes` オプションを利用してください。
+
+ホスト側から直接テストを実行する方法（代替）:
+
+```bash
+# MySQL がホストの 3306 にバインドされている場合（docker-compose の ports によるマッピングを利用）
+DATABASE_URL="mysql://app:verysecret@localhost:3306/app_db" npm run test:e2e
+```
+
+この方法はホスト上で devDependencies が揃っている場合に使いやすく、今回の検証でもホスト実行で全 E2E テストが通っています。
+
+トラブルシューティング:
+- `port is already allocated` が出る場合は既にホストの 3306 を別プロセスやコンテナが使っています。`docker ps` / `lsof -iTCP:3306 -sTCP:LISTEN` で確認してください。
+- Jest の globalSetup/globalTeardown の互換性エラーが出た場合は、リポジトリの `jest.globalSetup.cjs` / `jest.globalTeardown.cjs` を使用するように `jest.config.js` を更新しています。
+
+
 注: ローカル起動では MySQL の用意（ローカル DB または別コンテナ）が必要です。開発の簡便さと一貫性のため、Docker Compose を第一選択にしてください。
 
 ## 各 API の概要

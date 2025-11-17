@@ -9,7 +9,6 @@ export const CheckoutValidator = {
     staffId?: number;
     dueAt?: string;
   }) {
-
     if (!options.borrowerId && !options.borrowerName) {
       throw new DomainValidationError('borrowerId or borrowerName is required');
     }

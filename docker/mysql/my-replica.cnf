@@ -1,0 +1,11 @@
+[mysqld]
+# Use utf8mb4 as the default character set and collation
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+skip-character-set-client-handshake = 1
+innodb_default_row_format = dynamic
+
+# Replica server settings for replication
+server-id = 2
+relay_log = mysql-relay-bin
+read_only = 1
