@@ -74,8 +74,8 @@ jobs:
           SEED_ON_STARTUP=true
           EOF
 
-          # Build images
-          docker compose build --no-cache --pull
+          # Build images (keep devDependencies in the image so tests can run inside the container)
+          docker compose build --no-cache --pull --build-arg PRUNE_PRODUCTION=false
 
           # Start services
           docker compose up -d
