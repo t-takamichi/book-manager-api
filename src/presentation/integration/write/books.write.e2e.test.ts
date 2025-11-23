@@ -11,6 +11,7 @@ describe('E2E write /api/books', () => {
   let app: any;
   let prisma: PrismaClient;
   let seededBookId: number | string;
+  let seededStaffId: number;
 
   beforeAll(async () => {
     prisma = new PrismaClient();
@@ -24,8 +25,9 @@ describe('E2E write /api/books', () => {
     app.route('/', createRoutes(service));
 
     const result = await seedFactory.createBookWithAuthor(prisma, { title: 'TDD入門' });
-    await seedFactory.createStaff(prisma, '受付花子');
+    const staff = await seedFactory.createStaff(prisma, '受付花子');
     seededBookId = result.book.id;
+    seededStaffId = staff.id;
   });
 
   afterAll(async () => {
@@ -36,7 +38,7 @@ describe('E2E write /api/books', () => {
     const checkoutPayload = {
       borrowerName: 'E2E 利用者',
       borrowerEmail: 'e2e@example.com',
-      staffId: 1,
+      staffId: seededStaffId,
       dueAt: '2025-11-22',
     };
 
