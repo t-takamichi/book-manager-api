@@ -19,7 +19,7 @@ module.exports = async () => {
   const schema = path.resolve(__dirname, 'prisma/schema.prisma');
   console.log('jest.globalSetup: preparing DB using schema', schema);
 
-  execSync(`npx prisma db push --schema=${schema}`, { stdio: 'inherit', env: process.env });
+  execSync(`npx prisma migrate deploy --schema=${schema}`, { stdio: 'inherit', env: process.env });
   execSync(`npx prisma generate --schema=${schema}`, { stdio: 'inherit', env: process.env });
 
   try {
