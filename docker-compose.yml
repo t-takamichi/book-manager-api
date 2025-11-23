@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
-  db:
+  db-primary:
     image: mysql:8.0
+    container_name: db-primary
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
@@ -10,9 +9,33 @@ services:
       MYSQL_USER: ${MYSQL_USER:-app}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppass}
     volumes:
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./docker/mysql/my-primary.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
       - "3306:3306"
+    networks:
+      default:
+        aliases:
+          - db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  db-replica:
+    image: mysql:8.0
+    container_name: db-replica
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-app_db}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppass}
+    volumes:
+      - ./docker/mysql/my-replica.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3307:3306"
 
   app:
     build: .
@@ -21,9 +44,11 @@ services:
     restart: unless-stopped
     environment:
       USE_PRISMA: 'true'
-      DATABASE_URL: ${DATABASE_URL}
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-3306}
+      # Enable automatic DB seed on container start when true
+      SEED_ON_STARTUP: 'true'
+      # For read/write split, provide explicit URLs. If not set, fall back to DATABASE_URL.
+      DATABASE_URL_WRITE: ${DATABASE_URL_WRITE:-$DATABASE_URL}
+      DATABASE_URL_READ: ${DATABASE_URL_READ:-$DATABASE_URL}
       DB_USER: ${DB_USER:-app}
       DB_PASS: ${DB_PASS:-apppass}
       DB_NAME: ${DB_NAME:-app_db}
@@ -32,4 +57,5 @@ services:
     volumes:
       - ./.env:/usr/src/app/.env:ro
     depends_on:
-      - db
+      - db-primary
+      - db-replica

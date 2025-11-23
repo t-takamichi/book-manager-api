@@ -1,26 +1,35 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { createRoutes } from '@web/presentation/routes'
-import { BookService } from '@web/domain/service/BookService';
-import { BookRepositoryPrismaImpl } from '@web/infrastructure/repository/BookRepositoryPrismaImpl';
-
-const app = new Hono()
+import { serve } from '@hono/node-server';
+import { createApp } from './presentation/integration/helpers/createApp';
+import { runSeedIfNeeded } from '@web/infrastructure/db/seed';
 
 async function boot() {
-  const usePrisma = process.env.USE_PRISMA === 'true';
+  const { app, issuer } = await createApp();
 
+  // Run seed on startup when enabled via env or in test environment
+  try {
+    await runSeedIfNeeded(issuer as any);
+  } catch (e) {
+    console.error('Seed on startup failed:', e);
+  }
 
-  let bookRepository = new BookRepositoryPrismaImpl();
-  const bookService = new BookService(bookRepository);
+  serve(
+    {
+      fetch: app.fetch,
+      port: Number(process.env.PORT || 3000),
+    },
+    (info) => {
+      console.log(`Server is running on http://localhost:${info.port}`);
+    },
+  );
 
-  app.route('/', createRoutes(bookService));
-
-  serve({
-    fetch: app.fetch,
-    port: Number(process.env.PORT || 3000)
-  }, (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`)
-  })
+  // handle graceful shutdown
+  process.on('SIGINT', async () => {
+    try {
+      await issuer.disconnect();
+    } finally {
+      process.exit(0);
+    }
+  });
 }
 
 boot();

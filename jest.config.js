@@ -12,6 +12,6 @@ export default {
   },
   testEnvironment: 'node',
   testMatch: ['**/src/**/*.test.ts'],
-  globalSetup: '<rootDir>/jest.globalSetup.js',
-  globalTeardown: '<rootDir>/jest.globalTeardown.js',
+  globalSetup: '<rootDir>/jest.globalSetup.cjs',
+  globalTeardown: '<rootDir>/jest.globalTeardown.cjs',
 };

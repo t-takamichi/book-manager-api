@@ -7,7 +7,7 @@ import seedFactory from '../helpers/seedFactory';
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev-test.db';
 
-describe('E2E negative /api/books using SQLite', () => {
+describe('E2E negative /api/books', () => {
   let app: any;
   let prisma: PrismaClient;
   let seededBookId: number | string;
@@ -16,7 +16,9 @@ describe('E2E negative /api/books using SQLite', () => {
     prisma = new PrismaClient();
     await prisma.$connect();
 
-    const repo = new BookRepositoryPrismaImpl();
+    const issuerModule = await import('@web/infrastructure/db/client-issuer');
+    const issuer = new issuerModule.ClientIssuer(prisma, prisma);
+    const repo = new BookRepositoryPrismaImpl(issuer);
     const service = new BookService(repo);
     app = new Hono();
     app.route('/', createRoutes(service));
@@ -31,7 +33,8 @@ describe('E2E negative /api/books using SQLite', () => {
   });
 
   test('validation error when missing borrower info returns 422', async () => {
-    const payload = { staffId: 1, dueAt: '2025-11-22' };
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const payload = { staffId: 1, dueAt: futureDate };
     const req = new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,18 +49,33 @@ describe('E2E negative /api/books using SQLite', () => {
   });
 
   test('cannot checkout an already loaned book', async () => {
-    const first = await app.fetch(new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ borrowerName: 'First', borrowerEmail: 'first@example.com', staffId: 1 }),
-    }));
+    const futureDate2 = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const first = await app.fetch(
+      new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          borrowerName: 'First',
+          borrowerEmail: 'first@example.com',
+          staffId: 1,
+          dueAt: futureDate2,
+        }),
+      }),
+    );
     expect(first.status).toBe(200);
 
-    const second = await app.fetch(new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ borrowerName: 'Second', borrowerEmail: 'second@example.com', staffId: 1 }),
-    }));
+    const second = await app.fetch(
+      new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          borrowerName: 'Second',
+          borrowerEmail: 'second@example.com',
+          staffId: 1,
+          dueAt: futureDate2,
+        }),
+      }),
+    );
 
     expect(second.status).toBe(422);
     const body = await second.json();
@@ -66,13 +84,21 @@ describe('E2E negative /api/books using SQLite', () => {
   });
 
   test('invalid staffId returns 422', async () => {
-    const newResult = await seedFactory.createBookWithAuthor(prisma, { title: '無効staffId用の本' });
+    const newResult = await seedFactory.createBookWithAuthor(prisma, {
+      title: '無効staffId用の本',
+    });
 
-    const res = await app.fetch(new Request(`http://localhost/api/books/${newResult.book.id}/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ borrowerName: 'NoStaff', borrowerEmail: 'nostaff@example.com', staffId: 99999 }),
-    }));
+    const res = await app.fetch(
+      new Request(`http://localhost/api/books/${newResult.book.id}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          borrowerName: 'NoStaff',
+          borrowerEmail: 'nostaff@example.com',
+          staffId: 99999,
+        }),
+      }),
+    );
 
     expect(res.status).toBe(422);
     const body = await res.json();

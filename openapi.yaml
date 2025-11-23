@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Book Manager API
+  version: 1.0.0
+  description: API for searching, checking out and returning books.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+paths:
+  /api/books:
+    get:
+      summary: Search books
+      description: Search for books by a query string. Returns a paginated result object.
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+            maxLength: 100
+          required: false
+          description: Search query string (title/author/isbn). If omitted, returns paginated list of all books.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: Page number (1-based)
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          required: false
+          description: Items per page (default 15, max 100)
+      responses:
+        '200':
+          description: Paginated search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBooks'
+        '404':
+          description: No books found for the query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/books/{id}:
+    get:
+      summary: Get book by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/books/{id}/checkout:
+    post:
+      summary: Checkout a book
+      description: Create a loan for the specified book. Either borrowerId or borrowerName must be provided.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '200':
+          description: Book after checkout (with currentLoan and available=false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/books/{id}/return:
+    post:
+      summary: Return a book
+      description: Mark the book as returned and remove active loan.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book after return (available=true)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LoanInfo:
+      type: object
+      properties:
+        borrower:
+          type: string
+          description: Borrower name
+        borrowerId:
+          type: integer
+        staff:
+          type: string
+        loanedAt:
+          type: string
+          format: date-time
+        dueAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+      additionalProperties: false
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        isbn:
+          type: string
+        published:
+          type: string
+        description:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+        currentLoan:
+          $ref: '#/components/schemas/LoanInfo'
+      required:
+        - id
+        - title
+        - author
+        - isbn
+        - published
+        - available
+      additionalProperties: false
+    CheckoutRequest:
+      type: object
+      properties:
+        borrowerId:
+          type: integer
+          nullable: true
+          description: Numeric borrower id (optional if borrowerName is provided)
+        borrowerName:
+          type: string
+          nullable: true
+        borrowerEmail:
+          type: string
+          format: email
+          nullable: true
+        staffId:
+          type: integer
+          nullable: true
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+      description: Either borrowerId or borrowerName must be provided.
+      additionalProperties: false
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+      required:
+        - error
+        - message
+      additionalProperties: false
+    PaginatedBooks:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        total:
+          type: integer
+        page:
+          type: integer
+        perPage:
+          type: integer
+      required:
+        - items
+        - total
+        - page
+        - perPage
+      additionalProperties: false

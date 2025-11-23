@@ -2,9 +2,11 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 module.exports = async () => {
-  // Choose schema based on DATABASE_URL. If DATABASE_URL is a sqlite file URL,
-  // use the sqlite schema; otherwise use the default schema.prisma (for MySQL etc.).
-  const isSqlite = (process.env.DATABASE_URL || '').startsWith('file:');
+  // Default behavior: run tests against sqlite unless JEST_USE_MYSQL=true is set.
+  // This makes unit tests that mock Prisma easier to run locally without MySQL.
+  const useMySql = process.env.JEST_USE_MYSQL === 'true';
+  // Default to sqlite when DATABASE_URL is not provided, unless explicitly asked to use MySQL.
+  const isSqlite = !useMySql && ((process.env.DATABASE_URL || '').startsWith('file:') || !process.env.DATABASE_URL);
 
   if (isSqlite) {
     const schema = path.resolve(__dirname, 'prisma/schema.sqlite.prisma');

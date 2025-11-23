@@ -10,8 +10,9 @@ if command -v npx >/dev/null 2>&1; then
   echo "Attempting to run migrations (may fail if DB not ready). Retrying a few times..."
     # simple retry loop for migrations to wait for DB readiness
     # Increase retries and sleep to tolerate slower DB startups.
-    MAX_RETRIES=30
-    SLEEP_SEC=3
+  # Increase retries and sleep to tolerate slower DB initialization
+  MAX_RETRIES=60
+  SLEEP_SEC=5
     i=0
     MIGRATE_SUCCEEDED=0
 

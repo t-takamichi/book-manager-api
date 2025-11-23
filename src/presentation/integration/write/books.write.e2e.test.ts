@@ -7,23 +7,27 @@ import seedFactory from '../helpers/seedFactory';
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./dev-test.db';
 
-describe('E2E write /api/books using SQLite', () => {
+describe('E2E write /api/books', () => {
   let app: any;
   let prisma: PrismaClient;
   let seededBookId: number | string;
+  let seededStaffId: number;
 
   beforeAll(async () => {
     prisma = new PrismaClient();
     await prisma.$connect();
 
-    const repo = new BookRepositoryPrismaImpl();
+    const issuerModule = await import('@web/infrastructure/db/client-issuer');
+    const issuer = new issuerModule.ClientIssuer(prisma, prisma);
+    const repo = new BookRepositoryPrismaImpl(issuer);
     const service = new BookService(repo);
     app = new Hono();
     app.route('/', createRoutes(service));
 
     const result = await seedFactory.createBookWithAuthor(prisma, { title: 'TDD入門' });
-    await seedFactory.createStaff(prisma, '受付花子');
+    const staff = await seedFactory.createStaff(prisma, '受付花子');
     seededBookId = result.book.id;
+    seededStaffId = staff.id;
   });
 
   afterAll(async () => {
@@ -31,11 +35,12 @@ describe('E2E write /api/books using SQLite', () => {
   });
 
   test('POST /api/books/:id/checkout then GET returns currentLoan', async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const checkoutPayload = {
       borrowerName: 'E2E 利用者',
       borrowerEmail: 'e2e@example.com',
-      staffId: 1,
-      dueAt: '2025-11-22',
+      staffId: seededStaffId,
+      dueAt: futureDate,
     };
 
     const checkoutReq = new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
