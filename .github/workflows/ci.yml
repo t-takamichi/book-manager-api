@@ -59,6 +59,21 @@ jobs:
       # ensure the same runtime and DB are used for E2E and integration tests.
       - name: Build and run containerized E2E (Docker Compose)
         run: |
+          # Create .env for docker-compose (CI runner doesn't have one)
+          cat > .env <<'EOF'
+          MYSQL_ROOT_PASSWORD=verysecret
+          MYSQL_DATABASE=app_db
+          MYSQL_USER=app
+          MYSQL_PASSWORD=verysecret
+          DB_USER=app
+          DB_PASS=verysecret
+          DB_NAME=app_db
+          DATABASE_URL=mysql://app:verysecret@db-primary:3306/app_db
+          DATABASE_URL_WRITE=mysql://app:verysecret@db-primary:3306/app_db
+          DATABASE_URL_READ=mysql://app:verysecret@db-replica:3306/app_db
+          SEED_ON_STARTUP=true
+          EOF
+
           # Build images
           docker compose build --no-cache --pull
 
