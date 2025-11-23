@@ -4,7 +4,7 @@ export const CheckoutValidator = {
   validate(options: {
     bookId: string;
     borrowerId?: number;
-    borrowerName?: string;
+    borrowerName: string;
     borrowerEmail?: string;
     staffId?: number;
     dueAt?: string;
@@ -31,6 +31,9 @@ export const CheckoutValidator = {
       if (due < today) {
         throw new DomainValidationError('dueAt cannot be in the past');
       }
+    }
+    if (!options.borrowerName) {
+      throw new Error('borrowerId or borrowerName is required');
     }
   },
 };

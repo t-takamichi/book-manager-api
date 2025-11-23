@@ -2,24 +2,33 @@ import type { Context } from 'hono';
 import logger from '@web/common/logger';
 import { ErrorResponseHandler } from '@web/domain/errors/errorResponseHandler';
 import type { IBookService } from '@web/domain/service/BookService';
-import { BookQueryValidator } from '@web/presentation/validators/bookQueryValidator';
 import { buildCheckoutOptionsFromBody } from '@web/presentation/validators/checkoutRequestValidator';
+import { BookQueryValidator } from '../validators/bookQueryValidator';
+import type { ISearchBookParams } from '@web/domain/model/SearchBookParams';
 
 export const searchBooks = (bookService: IBookService) => async (c: Context) => {
   try {
-    const query = c.req.query('q');
-
-    // pagination params for search
+  // keep `q` undefined when missing so zod optional + min() behaves correctly
+  const query = c.req.query('q') ?? undefined;
     const pageParam = c.req.query('page');
     const perPageParam = c.req.query('per_page') || c.req.query('perPage');
 
-    const page = pageParam ? Number(pageParam) : 1;
-    const perPage = perPageParam ? Number(perPageParam) : 15;
+    let parsedQuery = BookQueryValidator.parserFromRequest({
+      q: query,
+      page: pageParam,
+      per_page: perPageParam,
+    });
 
-    logger.info(`Search request received: q=${query} page=${page} perPage=${perPage}`);
+    let searchBookParams : ISearchBookParams = {
+      query: parsedQuery.q,
+      page: parsedQuery.page ? Number(parsedQuery.page) : 1,
+      perPage: parsedQuery.per_page ? Number(parsedQuery.per_page) : 15,
+    }
+
+    logger.info(`Search request received: q=${searchBookParams.query} page=${searchBookParams.page} perPage=${searchBookParams.perPage}`);
 
     // Always return paginated object (items, total, page, perPage)
-    const result = await bookService.listBooks(query, page, perPage);
+    const result = await bookService.listBooks(searchBookParams);
 
     logger.info(`Search results found: ${result.items.length} items (total=${result.total})`);
 

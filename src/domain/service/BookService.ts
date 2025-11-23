@@ -3,7 +3,9 @@ import { NotFoundError } from '@web/domain/errors/customErrors';
 import logger from '@web/common/logger';
 import type { BookRepository } from '@web/domain/repository/BookRepository';
 import { BookDomainValidator } from '@web/domain/validator/BookDomainValidator';
+import { DomainValidationError } from '@web/domain/errors/customErrors';
 import { CheckoutValidator } from '@web/domain/validator/CheckoutValidator';
+import type { ISearchBookParams } from '@web/domain/model/SearchBookParams';
 
 export interface IBookService {
   searchBooks(query?: string): Promise<Book[]>;
@@ -11,9 +13,7 @@ export interface IBookService {
    * Search books with pagination. If query is undefined or empty string, behaves like listAllBooks.
    */
   listBooks(
-    query: string | undefined,
-    page?: number,
-    perPage?: number,
+    searchBookParams: ISearchBookParams
   ): Promise<{ items: Book[]; total: number; page: number; perPage: number }>;
   // listAllBooks returns paginated listing of all books (no search filter)
   listAllBooks(
@@ -52,24 +52,17 @@ export class BookService implements IBookService {
   }
 
   async listBooks(
-    query: string | undefined,
-    page: number = 1,
-    perPage: number = 15,
+    searchBookParams: ISearchBookParams
   ): Promise<{ items: Book[]; total: number; page: number; perPage: number }> {
-    logger.info(
-      `Executing BookService.listBooks with query: ${query} page=${page} perPage=${perPage}`,
-    );
 
-    // apply domain validation rules (e.g. minimum length) when query present
-    if (query && query.trim() !== '') {
-      BookDomainValidator.validate(query);
-    }
-
-    const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
-    const safePage = page && page > 0 ? page : 1;
+    // normalize pagination params similar to listAllBooks
+    const safePerPage = searchBookParams.perPage && searchBookParams.perPage > 0
+      ? Math.min(searchBookParams.perPage, 100)
+      : 15;
+    const safePage = searchBookParams.page && searchBookParams.page > 0 ? searchBookParams.page : 1;
 
     const { items, total } = await this.bookRepository.findByQueryPaginated(
-      query,
+      searchBookParams.query,
       safePage,
       safePerPage,
     );
@@ -95,7 +88,7 @@ export class BookService implements IBookService {
   async checkoutBook(options: {
     bookId: string;
     borrowerId?: number;
-    borrowerName?: string;
+    borrowerName: string;
     borrowerEmail?: string;
     staffId?: number;
     dueAt?: string;
@@ -104,7 +97,32 @@ export class BookService implements IBookService {
 
     CheckoutValidator.validate(options);
 
-    const created = await this.bookRepository.createLoanForBook(options);
+    let borrowerId = options.borrowerId;
+    if (!borrowerId) {
+      // Use atomic find-or-create to avoid race conditions
+      const borrower = await this.bookRepository.findOrCreateBorrower({
+        name: options.borrowerName,
+        email: options.borrowerEmail,
+      });
+      borrowerId = borrower.id;
+    }
+
+    if (options.staffId) {
+      const staff = await this.bookRepository.findStaffById(options.staffId);
+      if (!staff) {
+        // staff id is a domain validation problem — throw DomainValidationError so
+        // the error-response mapping produces 422 as expected by tests/E2E
+        throw new DomainValidationError('Invalid staffId');
+      }
+    }
+
+    const created = await this.bookRepository.createLoanForBook({
+      bookId: options.bookId,
+      borrowerId: borrowerId!,
+      staffId: options.staffId,
+      dueAt: options.dueAt,
+    });
+
     return created;
   }
 

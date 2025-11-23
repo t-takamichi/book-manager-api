@@ -1,26 +1,12 @@
 import { BookQueryValidator } from './bookQueryValidator';
 
 describe('BookQueryValidator', () => {
-  test('should pass validation for a valid query', () => {
-    expect(() => BookQueryValidator.validateQuery('valid query')).not.toThrow();
-  });
+	test('parses missing params into undefined q and optional fields', () => {
+		const parsed = BookQueryValidator.parserFromRequest({});
+		expect(parsed).toBeDefined();
+		expect(parsed.q).toBeUndefined();
+		expect(parsed.page).toBeUndefined();
+		expect(parsed.per_page).toBeUndefined();
+	});
 
-  test('should throw an error for an empty query', () => {
-    expect(() => BookQueryValidator.validateQuery('')).toThrow(
-      'Query parameter is required and cannot be empty.',
-    );
-  });
-
-  test('should throw an error for a query that is too long', () => {
-    const longQuery = 'a'.repeat(101);
-    expect(() => BookQueryValidator.validateQuery(longQuery)).toThrow(
-      'Query parameter is too long. Maximum length is 100 characters.',
-    );
-  });
-
-  test('should throw an error for an undefined query', () => {
-    expect(() => BookQueryValidator.validateQuery(undefined)).toThrow(
-      'Query parameter is required and cannot be empty.',
-    );
-  });
 });

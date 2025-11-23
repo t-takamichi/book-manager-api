@@ -109,6 +109,70 @@ DATABASE_URL="mysql://app:verysecret@localhost:3306/app_db" npm run test:e2e
 
 この方法はホスト上で devDependencies が揃っている場合に使いやすく、今回の検証でもホスト実行で全 E2E テストが通っています。
 
+## CI / コンテナ内でのテスト実行（推奨手順）
+
+このリポジトリの `Dockerfile` はサイズ最適化のためにビルド時に devDependencies を削除する（`npm prune --production`）オプションを持ちます。
+CI やコンテナ内で Jest を実行する際は devDependencies が必要なため、テスト用イメージは devDependencies を残した状態でビルドしてください。
+
+開発 / CI 用に安全にテストを実行する手順（推奨）:
+
+1. テスト用イメージを devDependencies を残してビルド（`PRUNE_PRODUCTION=false` を渡す）
+
+```bash
+docker compose build --build-arg PRUNE_PRODUCTION=false app
+```
+
+2. Compose を起動（バックグラウンド）
+
+```bash
+docker compose up -d
+```
+
+3. DB の起動／ヘルスチェックが完了するまで待つ（`db-primary` の health が `healthy` になるのを確認）
+
+```bash
+docker compose ps
+docker compose logs --follow db-primary
+```
+
+4. `app` コンテナ内でマイグレーション適用・Prisma クライアント生成・テスト実行
+
+（例: `.env` と合わせて `app`/`db-primary` の接続情報が正しいことを確認してから実行）
+
+```bash
+docker compose exec app sh -c '
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma migrate deploy --schema=prisma/schema.prisma && \
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx prisma generate --schema=prisma/schema.prisma && \
+  DATABASE_URL="mysql://app:verysecret@db-primary:3306/app_db" npx jest --runInBand --verbose'
+```
+
+備考:
+- CI 環境で `docker compose exec` を使う場合、イメージを先に dev 用でビルドしておくこと（上の build コマンド）が重要です。
+- もし CI のリソースが小さい（メモリが少ない）と Jest 実行中にコンテナが SIGKILL（exit code 137）される場合があります。その場合は Docker ホストのメモリ割当を増やすか、テストを並列で実行しない設定（`--runInBand`）を使ってください。
+
+### 本番用イメージを作る場合
+
+本番デプロイ用には devDependencies を削除して小さなイメージを作るのが推奨です。通常のビルド（prune 有効）:
+
+```bash
+docker compose build app
+```
+
+（`Dockerfile` のデフォルトは `PRUNE_PRODUCTION=true` です）
+
+---
+
+### よくある失敗と対処
+
+- `Cannot find module '@babel/preset-env'` などのエラー
+  - 原因: テスト実行に必要な devDependencies がイメージから削除されているため。対処: 上記のように `PRUNE_PRODUCTION=false` でビルドするか、コンテナ内で `npm install` を再実行して devDependencies をインストールしてください（短期対処）。
+
+- exit code 137（プロセスが SIGKILL）
+  - 原因: コンテナがメモリ不足で OS の OOM キラーによりプロセスを強制終了されることが多いです。
+  - 対処: Docker Desktop のメモリ割当を増やす、または CI の runner インスタンスを大きくする。テストを軽くする（重いシードを減らす、並列実行を抑える）ことも有効です。
+
+これらの手順を README に残しておくと、CI やローカルで同じ失敗を繰り返さずに済みます。
+
 トラブルシューティング:
 - `port is already allocated` が出る場合は既にホストの 3306 を別プロセスやコンテナが使っています。`docker ps` / `lsof -iTCP:3306 -sTCP:LISTEN` で確認してください。
 - Jest の globalSetup/globalTeardown の互換性エラーが出た場合は、リポジトリの `jest.globalSetup.cjs` / `jest.globalTeardown.cjs` を使用するように `jest.config.js` を更新しています。

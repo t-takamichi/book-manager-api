@@ -35,4 +35,49 @@ describe('BookService', () => {
         expect(repo.findByQuery).toHaveBeenCalledWith('unknown query');
       });
   });
+
+  test('listAllBooks normalizes page/perPage defaults and returns shaped response', async () => {
+    const sample = [{ id: '1', title: 'A' }];
+    const repo: any = { findPaginated: jest.fn().mockResolvedValue({ items: sample, total: 1 }) };
+    const svc = new BookService(repo);
+
+    const res = await svc.listAllBooks();
+
+    expect(repo.findPaginated).toHaveBeenCalledWith(1, 15);
+    expect(res.items).toBe(sample);
+    expect(res.total).toBe(1);
+    expect(res.page).toBe(1);
+    expect(res.perPage).toBe(15);
+  });
+
+  test('listAllBooks clamps perPage > 100 and normalizes invalid page/perPage', async () => {
+    const sample = [{ id: '2', title: 'B' }];
+    const repo: any = { findPaginated: jest.fn().mockResolvedValue({ items: sample, total: 10 }) };
+    const svc = new BookService(repo);
+
+    // perPage too large should be clamped to 100, page 0 should become 1
+    const res = await svc.listAllBooks(0, 1000);
+
+    expect(repo.findPaginated).toHaveBeenCalledWith(1, 100);
+    expect(res.page).toBe(1);
+    expect(res.perPage).toBe(100);
+    expect(res.total).toBe(10);
+  });
+
+  test('listBooks with query normalizes page/perPage and passes query to repository', async () => {
+    const sample = [{ id: '3', title: 'C' }];
+    const repo: any = {
+      findByQueryPaginated: jest.fn().mockResolvedValue({ items: sample, total: 3 }),
+    };
+    const svc = new BookService(repo);
+
+  const res = await svc.listBooks({ query: 'search', page: -5, perPage: 2000 });
+
+    // negative page should be normalized to 1, perPage clamped to 100
+    expect(repo.findByQueryPaginated).toHaveBeenCalledWith('search', 1, 100);
+    expect(res.page).toBe(1);
+    expect(res.perPage).toBe(100);
+    expect(res.total).toBe(3);
+    expect(res.items).toBe(sample);
+  });
 });

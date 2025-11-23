@@ -28,7 +28,7 @@ model Book {
 
 model Borrower {
   id    Int    @id @default(autoincrement())
-  name  String
+  name  String @unique
   email String?
   loans Loan[]
   @@map("borrowers")

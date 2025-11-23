@@ -1,5 +1,4 @@
 import { Book } from '@web/domain/model/Book';
-import type { DatabaseClient } from '@web/infrastructure/db/client-issuer';
 
 export interface BookRepository {
   findAll(): Promise<Book[]>;
@@ -22,15 +21,27 @@ export interface BookRepository {
   ): Promise<{ items: Book[]; total: number }>;
 
   findById(id: string): Promise<Book | null>;
-
+  /**
+   * Create a loan for an existing book. Caller must provide a valid borrowerId.
+   * This method is responsible for the transactional creation of the loan and
+   * ensuring no concurrent active loan exists for the same book.
+   */
   createLoanForBook(options: {
     bookId: string;
-    borrowerId?: number;
-    borrowerName?: string;
-    borrowerEmail?: string;
+    borrowerId: number;
     staffId?: number;
     dueAt?: string;
   }): Promise<Book>;
+
+  // Borrower / staff helpers used by service layer to keep repository responsibilities small
+  findBorrowerByName(name: string): Promise<{ id: number } | null>;
+  createBorrower(options: { name: string; email?: string }): Promise<{ id: number }>;
+  findStaffById(id: number): Promise<{ id: number } | null>;
+  /**
+   * Atomically find or create a borrower by name. Returns the borrower id.
+   * This should be implemented transactionally to avoid race conditions.
+   */
+  findOrCreateBorrower(options: { name: string; email?: string }): Promise<{ id: number }>;
 
   returnBookByBookId(bookId: string): Promise<Book>;
 }

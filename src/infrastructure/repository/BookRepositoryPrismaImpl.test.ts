@@ -92,7 +92,6 @@ describe('BookRepositoryPrismaImpl', () => {
     // tx mock that simulates transactional client
     const txMock: any = {
       book: { findUnique: jest.fn() },
-      borrower: { findFirst: jest.fn(), create: jest.fn() },
       loan: { create: jest.fn(), findFirst: jest.fn() },
     };
 
@@ -100,9 +99,7 @@ describe('BookRepositoryPrismaImpl', () => {
     prismaMock.$transaction.mockImplementation(async (cb: any) => cb(txMock));
 
     txMock.book.findUnique.mockResolvedValue({ id: 3 });
-    txMock.borrower.findFirst.mockResolvedValue(null);
     txMock.loan.findFirst.mockResolvedValue(null);
-    txMock.borrower.create.mockResolvedValue({ id: 5 });
     txMock.loan.create.mockResolvedValue({ id: 10 });
 
     // mock fresh read on replica after transaction
@@ -119,20 +116,19 @@ describe('BookRepositoryPrismaImpl', () => {
 
     const created = await repo.createLoanForBook({
       bookId: '3',
-      borrowerName: '新規利用者',
-      borrowerEmail: 'a@example.com',
+      borrowerId: 5,
     });
 
     expect(created).toBeDefined();
     expect(created.id).toBe(String(3));
 
     expect(txMock.book.findUnique).toHaveBeenCalledWith({ where: { id: 3 } });
-    expect(txMock.borrower.findFirst).toHaveBeenCalledWith({
-      where: { name: '新規利用者' },
-    });
-    expect(txMock.borrower.create).toHaveBeenCalledWith({
-      data: { name: '新規利用者', email: 'a@example.com' },
-    });
-    expect(txMock.loan.create).toHaveBeenCalled();
+    // borrower should not be touched inside createLoanForBook when caller supplies borrowerId
+    // ensure loan.create was called with borrowerId passed
+    expect(txMock.loan.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ borrowerId: 5 }),
+      }),
+    );
   });
 });

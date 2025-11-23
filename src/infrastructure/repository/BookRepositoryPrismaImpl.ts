@@ -68,16 +68,16 @@ export class BookRepositoryPrismaImpl implements BookRepository {
 
   async findAll(): Promise<Book[]> {
     return this.issuer.queryOnReplica(async (client) => {
-      const rows: BookRow[] = await client.book.findMany({ include: BOOK_INCLUDES });
+      const rows: BookRow[] = await client.book.findMany({
+        include: BOOK_INCLUDES,
+        orderBy: { id: 'asc' },
+      });
       return rows.map(mapPrismaBookToDomain);
     });
   }
 
   async findPaginated(page: number, perPage: number): Promise<{ items: Book[]; total: number }> {
-    const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
-    const safePage = page && page > 0 ? page : 1;
-
-    const skip = (safePage - 1) * safePerPage;
+    const skip = (page - 1) * perPage;
 
     return this.issuer.queryOnReplica(async (client) => {
       const total = await client.book.count();
@@ -85,7 +85,8 @@ export class BookRepositoryPrismaImpl implements BookRepository {
       const rows: BookRow[] = await client.book.findMany({
         include: BOOK_INCLUDES,
         skip,
-        take: safePerPage,
+        take: perPage,
+        orderBy: { id: 'asc' },
       });
 
       const items = rows.map(mapPrismaBookToDomain);
@@ -94,14 +95,11 @@ export class BookRepositoryPrismaImpl implements BookRepository {
   }
 
   async findByQueryPaginated(
-    query: string | undefined,
+    query: string,
     page: number,
     perPage: number,
   ): Promise<{ items: Book[]; total: number }> {
-    const safePerPage = perPage && perPage > 0 ? Math.min(perPage, 100) : 15;
-    const safePage = page && page > 0 ? page : 1;
-
-    const skip = (safePage - 1) * safePerPage;
+    const skip = (page - 1) * perPage;
 
     const where =
       query && query.trim() !== ''
@@ -122,7 +120,8 @@ export class BookRepositoryPrismaImpl implements BookRepository {
         where,
         include: BOOK_INCLUDES,
         skip,
-        take: safePerPage,
+        take: perPage,
+        orderBy: { id: 'asc' },
       });
 
       const items = rows.map(mapPrismaBookToDomain);
@@ -144,6 +143,7 @@ export class BookRepositoryPrismaImpl implements BookRepository {
           ],
         },
         include: BOOK_INCLUDES,
+        orderBy: { id: 'asc' },
       });
 
       return rows.map(mapPrismaBookToDomain);
@@ -164,12 +164,11 @@ export class BookRepositoryPrismaImpl implements BookRepository {
 
   async createLoanForBook(options: {
     bookId: string;
-    borrowerId?: number;
-    borrowerName?: string;
-    borrowerEmail?: string;
+    borrowerId: number;
     staffId?: number;
     dueAt?: string;
   }): Promise<Book> {
+    // createLoanForBook assumes borrowerId and staffId (if provided) are already validated
     await this.issuer.transactOnPrimary(async (tx: TxClient) => {
       const book = await tx.book.findUnique({ where: { id: Number(options.bookId) } });
       if (!book) throw new Error('Book not found');
@@ -181,31 +180,10 @@ export class BookRepositoryPrismaImpl implements BookRepository {
         throw new AlreadyLoanedError('Book is already loaned out');
       }
 
-      let borrowerId = options.borrowerId;
-      if (!borrowerId) {
-        if (!options.borrowerName) throw new Error('borrowerId or borrowerName is required');
-        const existing = await tx.borrower.findFirst({ where: { name: options.borrowerName } });
-        if (existing) {
-          borrowerId = existing.id;
-        } else {
-          const created = await tx.borrower.create({
-            data: { name: options.borrowerName, email: options.borrowerEmail },
-          });
-          borrowerId = created.id;
-        }
-      }
-
-      if (options.staffId) {
-        const staff = await tx.staff.findUnique({ where: { id: options.staffId } });
-        if (!staff) {
-          throw new DomainValidationError('Invalid staffId');
-        }
-      }
-
       await tx.loan.create({
         data: {
           bookId: Number(options.bookId),
-          borrowerId: borrowerId!,
+          borrowerId: options.borrowerId,
           staffId: options.staffId || null,
           loanedAt: new Date(),
           dueAt: options.dueAt ? new Date(options.dueAt) : undefined,
@@ -228,6 +206,43 @@ export class BookRepositoryPrismaImpl implements BookRepository {
     );
 
     return fresh;
+  }
+
+  async findBorrowerByName(name: string): Promise<{ id: number } | null> {
+    return this.issuer.queryOnReplica(async (client) => {
+      const r = await client.borrower.findFirst({ where: { name } });
+      if (!r) return null;
+      return { id: r.id };
+    });
+  }
+
+  async createBorrower(options: { name: string; email?: string }): Promise<{ id: number }> {
+    return this.issuer.transactOnPrimary(async (tx: TxClient) => {
+      const created = await tx.borrower.create({
+        data: { name: options.name, email: options.email },
+      });
+      return { id: created.id };
+    });
+  }
+
+  async findStaffById(id: number): Promise<{ id: number } | null> {
+    return this.issuer.queryOnReplica(async (client) => {
+      const r = await client.staff.findUnique({ where: { id } });
+      if (!r) return null;
+      return { id: r.id };
+    });
+  }
+
+  async findOrCreateBorrower(options: { name: string; email?: string }): Promise<{ id: number }> {
+    // Use upsert on a unique key (name) to atomically find or create
+    return this.issuer.transactOnPrimary(async (tx: TxClient) => {
+      const b = await tx.borrower.upsert({
+        where: { name: options.name },
+        create: { name: options.name, email: options.email },
+        update: {},
+      });
+      return { id: b.id };
+    });
   }
 
   async returnBookByBookId(bookId: string): Promise<Book> {

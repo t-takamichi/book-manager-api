@@ -1,8 +1,16 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './presentation/integration/helpers/createApp';
+import { runSeedIfNeeded } from '@web/infrastructure/db/seed';
 
 async function boot() {
   const { app, issuer } = await createApp();
+
+  // Run seed on startup when enabled via env or in test environment
+  try {
+    await runSeedIfNeeded(issuer as any);
+  } catch (e) {
+    console.error('Seed on startup failed:', e);
+  }
 
   serve(
     {

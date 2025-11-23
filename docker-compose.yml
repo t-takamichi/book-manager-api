@@ -16,6 +16,12 @@ services:
       default:
         aliases:
           - db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   db-replica:
     image: mysql:8.0
@@ -38,6 +44,8 @@ services:
     restart: unless-stopped
     environment:
       USE_PRISMA: 'true'
+      # Enable automatic DB seed on container start when true
+      SEED_ON_STARTUP: 'true'
       # For read/write split, provide explicit URLs. If not set, fall back to DATABASE_URL.
       DATABASE_URL_WRITE: ${DATABASE_URL_WRITE:-$DATABASE_URL}
       DATABASE_URL_READ: ${DATABASE_URL_READ:-$DATABASE_URL}

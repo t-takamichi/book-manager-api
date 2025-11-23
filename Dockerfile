@@ -1,5 +1,8 @@
 FROM node:18-bullseye
 
+# Allow optionally skipping npm prune at the end so we can build a dev/test image
+ARG PRUNE_PRODUCTION=true
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./
@@ -16,7 +19,7 @@ RUN apt-get update && apt-get install -y default-mysql-client && rm -rf /var/lib
 
 RUN chmod +x ./docker/entrypoint.sh || true
 
-RUN npm prune --production || true
+RUN if [ "${PRUNE_PRODUCTION}" = "true" ] ; then npm prune --production || true ; fi
 
 EXPOSE 3000
 
