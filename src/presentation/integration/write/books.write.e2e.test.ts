@@ -35,11 +35,12 @@ describe('E2E write /api/books', () => {
   });
 
   test('POST /api/books/:id/checkout then GET returns currentLoan', async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const checkoutPayload = {
       borrowerName: 'E2E 利用者',
       borrowerEmail: 'e2e@example.com',
       staffId: seededStaffId,
-      dueAt: '2025-11-22',
+      dueAt: futureDate,
     };
 
     const checkoutReq = new Request(`http://localhost/api/books/${seededBookId}/checkout`, {

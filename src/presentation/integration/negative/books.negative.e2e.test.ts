@@ -33,7 +33,8 @@ describe('E2E negative /api/books', () => {
   });
 
   test('validation error when missing borrower info returns 422', async () => {
-    const payload = { staffId: 1, dueAt: '2025-11-22' };
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const payload = { staffId: 1, dueAt: futureDate };
     const req = new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -48,6 +49,7 @@ describe('E2E negative /api/books', () => {
   });
 
   test('cannot checkout an already loaned book', async () => {
+    const futureDate2 = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const first = await app.fetch(
       new Request(`http://localhost/api/books/${seededBookId}/checkout`, {
         method: 'POST',
@@ -56,6 +58,7 @@ describe('E2E negative /api/books', () => {
           borrowerName: 'First',
           borrowerEmail: 'first@example.com',
           staffId: 1,
+          dueAt: futureDate2,
         }),
       }),
     );
@@ -69,6 +72,7 @@ describe('E2E negative /api/books', () => {
           borrowerName: 'Second',
           borrowerEmail: 'second@example.com',
           staffId: 1,
+          dueAt: futureDate2,
         }),
       }),
     );
