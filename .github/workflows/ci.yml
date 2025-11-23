@@ -78,8 +78,6 @@ jobs:
           docker compose build --no-cache --pull --build-arg PRUNE_PRODUCTION=false
 
           # Start services
-          # Ensure entrypoint is executable (host mount can remove exec bit in CI)
-          chmod +x ./docker/entrypoint.sh || true
           docker compose up -d
 
           # Wait for db-primary to be ready
