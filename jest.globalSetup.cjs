@@ -19,7 +19,9 @@ module.exports = async () => {
   const schema = path.resolve(__dirname, 'prisma/schema.prisma');
   console.log('jest.globalSetup: preparing DB using schema', schema);
 
-  execSync(`npx prisma migrate deploy --schema=${schema}`, { stdio: 'inherit', env: process.env });
+  // For CI/test runs we reset the DB to ensure migrations are applied to a clean database.
+  // `migrate reset` drops all data and reapplies migrations, which is acceptable for test DB.
+  execSync(`npx prisma migrate reset --force --schema=${schema}`, { stdio: 'inherit', env: process.env });
   execSync(`npx prisma generate --schema=${schema}`, { stdio: 'inherit', env: process.env });
 
   try {
