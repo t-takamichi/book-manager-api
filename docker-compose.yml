@@ -38,11 +38,16 @@ services:
       - "3307:3306"
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        PRUNE_PRODUCTION: 'false'
+    command: npm run dev
     env_file:
       - .env
     restart: unless-stopped
     environment:
+      NODE_ENV: development
       USE_PRISMA: 'true'
       # Enable automatic DB seed on container start when true
       SEED_ON_STARTUP: 'true'
@@ -55,6 +60,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      - ./:/usr/src/app:cached
+      # keep node_modules from the image (avoid installing on host)
+      - /usr/src/app/node_modules
       - ./.env:/usr/src/app/.env:ro
     depends_on:
       - db-primary
